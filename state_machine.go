@@ -2,32 +2,31 @@ package gostatechart
 
 import (
 	"fmt"
-	"log"
+	"reflect"
 )
 
-type transitions map[Event]State
+type transitions map[reflect.Type]reflect.Type
 
 type StateMachine struct {
-	*Factory
-	initialState State
+	initialState reflect.Type
 
 	context            interface{}
 	currentState       State
 	currentTransitions transitions
 	events             []Event
-	allTransitions     map[string]transitions
+	allTransitions     map[reflect.Type]transitions
 }
 
-func NewStateMachine(factory *Factory, initialState State) *StateMachine {
-	if factory == nil {
-		factory = DefaultFactory
-	}
+func NewStateMachine(initialState State) *StateMachine {
 	return &StateMachine{
-		Factory:        factory,
-		initialState:   initialState,
+		initialState:   reflect.TypeOf(initialState),
 		events:         make([]Event, 0, 16),
-		allTransitions: make(map[string]transitions),
+		allTransitions: make(map[reflect.Type]transitions),
 	}
+}
+
+func (sm *StateMachine) Close() {
+	sm.currentState.End((*EvClose)(nil))
 }
 
 func (sm *StateMachine) Initiate(context interface{}) error {
@@ -36,7 +35,7 @@ func (sm *StateMachine) Initiate(context interface{}) error {
 	}
 
 	sm.context = context
-	sm.transit(sm.initialState, nil)
+	sm.transit(sm.initialState, (*EvInit)(nil))
 
 	return nil
 }
@@ -46,11 +45,10 @@ func (sm *StateMachine) PostEvent(e Event) {
 }
 
 func (sm *StateMachine) ProcessEvent(e Event) {
-	next, ok := sm.currentTransitions[e]
+	next, ok := sm.currentTransitions[reflect.TypeOf(e)]
 	if ok {
 		sm.transit(next, e)
 	} else {
-		log.Printf("%s React %s", typename(sm.currentState), typename(e))
 		ne := sm.currentState.React(e)
 		if ne != nil {
 			sm.PostEvent(ne)
@@ -63,19 +61,22 @@ func (sm *StateMachine) ProcessEvent(e Event) {
 }
 
 func (sm *StateMachine) RegisterTransition(state State, event Event, next State) error {
-	name := typename(state)
-	trans, ok := sm.allTransitions[name]
+	curType := reflect.TypeOf(state)
+	trans, ok := sm.allTransitions[curType]
 	if !ok {
 		trans = make(transitions)
 	}
 
-	n, ok := trans[event]
-	if ok && n != next {
-		return fmt.Errorf("")
+	eventType := reflect.TypeOf(event)
+	nextType := reflect.TypeOf(next)
+
+	n, ok := trans[eventType]
+	if ok && n != nextType {
+		return fmt.Errorf("the transitions of %s on %s is exists", curType.Elem().Name(), eventType.Elem().Name())
 	}
 
-	trans[event] = next
-	sm.allTransitions[name] = trans
+	trans[eventType] = nextType
+	sm.allTransitions[curType] = trans
 	return nil
 }
 
@@ -92,24 +93,19 @@ func (sm *StateMachine) Run() {
 	}
 }
 
-func (sm *StateMachine) transit(s State, event Event) {
+func (sm *StateMachine) transit(s reflect.Type, event Event) {
 	if sm.currentState != nil {
-		log.Printf("%s End %s", typename(sm.currentState), typename(event))
 		if e := sm.currentState.End(event); e != nil {
 			sm.PostEvent(e)
 		}
 	}
 
-	state := sm.Factory.NewState(s)
+	// msg0 := reflect.New(typ.Elem()).Interface().(proto.Message)
+	//state := sm.Factory.NewState(s)
+	state := reflect.New(s.Elem()).Interface().(State)
 	sm.currentState = state
-	sm.currentTransitions = sm.allTransitions[typename(state)]
+	sm.currentTransitions = sm.allTransitions[s]
 
-	currentName := typename(state)
-	for e, s := range sm.currentTransitions {
-		log.Printf("%s To %s When %s", currentName, typename(s), typename(e))
-	}
-
-	log.Printf("%s Begin %s", typename(state), typename(event))
 	if e := state.Begin(sm.context, nil); e != nil {
 		sm.PostEvent(e)
 	}
