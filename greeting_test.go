@@ -4,8 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +30,7 @@ func TestGreeting(t *testing.T) {
 		sm.Close()
 	}()
 	require.NoError(t, sm.Initiate(t))
-	assert.IsType(t, reflect.TypeOf((*Greeting)(nil)), sm.initialState)
+	require.IsType(t, (*Greeting)(nil), sm.currentState)
 }
 
 func BenchmarkTypeOf(b *testing.B) {

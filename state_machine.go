@@ -5,23 +5,19 @@ import (
 	"reflect"
 )
 
-type transitions map[reflect.Type]reflect.Type
-
 type StateMachine struct {
 	initialState reflect.Type
 
 	context            interface{}
 	currentState       State
-	currentTransitions transitions
+	currentTransitions Transitions
 	events             []Event
-	allTransitions     map[reflect.Type]transitions
 }
 
 func NewStateMachine(initialState State) *StateMachine {
 	return &StateMachine{
-		initialState:   reflect.TypeOf(initialState),
-		events:         make([]Event, 0, 16),
-		allTransitions: make(map[reflect.Type]transitions),
+		initialState: reflect.TypeOf(initialState),
+		events:       make([]Event, 0, 16),
 	}
 }
 
@@ -60,26 +56,6 @@ func (sm *StateMachine) ProcessEvent(e Event) {
 	}
 }
 
-func (sm *StateMachine) RegisterTransition(state State, event Event, next State) error {
-	curType := reflect.TypeOf(state)
-	trans, ok := sm.allTransitions[curType]
-	if !ok {
-		trans = make(transitions)
-	}
-
-	eventType := reflect.TypeOf(event)
-	nextType := reflect.TypeOf(next)
-
-	n, ok := trans[eventType]
-	if ok && n != nextType {
-		return fmt.Errorf("the transitions of %s on %s is exists", curType.Elem().Name(), eventType.Elem().Name())
-	}
-
-	trans[eventType] = nextType
-	sm.allTransitions[curType] = trans
-	return nil
-}
-
 func (sm *StateMachine) Run() {
 	if len(sm.events) <= 0 {
 		return
@@ -100,11 +76,9 @@ func (sm *StateMachine) transit(s reflect.Type, event Event) {
 		}
 	}
 
-	// msg0 := reflect.New(typ.Elem()).Interface().(proto.Message)
-	//state := sm.Factory.NewState(s)
 	state := reflect.New(s.Elem()).Interface().(State)
 	sm.currentState = state
-	sm.currentTransitions = sm.allTransitions[s]
+	sm.currentTransitions = state.GetTransitions()
 
 	if e := state.Begin(sm.context, nil); e != nil {
 		sm.PostEvent(e)

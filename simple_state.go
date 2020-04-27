@@ -19,6 +19,10 @@ func (state *SimpleState) GetEvent() Event {
 	return nil
 }
 
+func (state *SimpleState) GetTransitions() Transitions {
+	return nil
+}
+
 func (state *SimpleState) PostEvent(event Event) {
 	state.StateMachine.PostEvent(event)
 }
@@ -37,9 +41,5 @@ func (state *SimpleState) RegisterReaction(event Event, reaction Reaction) error
 		panic("event already exists")
 	}
 	state.reactions[event] = reaction
-	return nil
-}
-
-func (state *SimpleState) RegisterTransition(event Event, next State) error {
 	return nil
 }

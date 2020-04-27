@@ -18,7 +18,7 @@ type State interface {
 	// Default implement in SimpleState
 	End(event Event) Event
 	GetEvent() Event
-	//PostEvent(event Event)
+	GetTransitions() Transitions
 	React(event Event) Event
 	RegisterReaction(event Event, reaction Reaction) error
 }

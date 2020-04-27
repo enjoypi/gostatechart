@@ -20,16 +20,20 @@ func (s *Active) Begin(context interface{}, event Event) Event {
 	return nil
 }
 
-func (s *Active) InitReactions() {
-	s.RegisterTransition((*EvReset)(nil), (*Active)(nil))
+func (s *Active) GetTransitions() Transitions {
+	trans := NewTranstions()
+	trans.RegisterTransition((*EvReset)(nil), (*Active)(nil))
+	return trans
 }
 
 type Stopped struct {
 	SimpleState
 }
 
-func (s *Stopped) InitReactions() {
-	s.RegisterTransition((*EvStartStop)(nil), (*Running)(nil))
+func (s *Stopped) GetTransitions() Transitions {
+	trans := NewTranstions()
+	trans.RegisterTransition((*EvStartStop)(nil), (*Running)(nil))
+	return trans
 }
 
 func (s *Stopped) Begin(context interface{}, event Event) Event {
@@ -40,8 +44,10 @@ type Running struct {
 	SimpleState
 }
 
-func (s *Running) InitReactions() {
-	s.RegisterTransition((*EvStartStop)(nil), (*Stopped)(nil))
+func (s *Running) GetTransitions() Transitions {
+	trans := NewTranstions()
+	trans.RegisterTransition((*EvStartStop)(nil), (*Stopped)(nil))
+	return trans
 }
 
 func (s *Running) Begin(context interface{}, event Event) Event {
@@ -51,4 +57,9 @@ func (s *Running) Begin(context interface{}, event Event) Event {
 func TestStopWatch(t *testing.T) {
 	stopWatch := NewStateMachine((*Stopped)(nil))
 	require.NoError(t, stopWatch.Initiate(nil))
+	require.IsType(t, (*Stopped)(nil), stopWatch.currentState)
+	stopWatch.ProcessEvent((*EvStartStop)(nil))
+	require.IsType(t, (*Running)(nil), stopWatch.currentState)
+	stopWatch.ProcessEvent((*EvStartStop)(nil))
+	require.IsType(t, (*Stopped)(nil), stopWatch.currentState)
 }
