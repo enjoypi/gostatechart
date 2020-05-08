@@ -1,8 +1,10 @@
-package gostatechart
+package gostatechart_test
 
 import (
+	"reflect"
 	"testing"
 
+	sc "github.com/enjoypi/gostatechart"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,53 +15,103 @@ type EvReset struct {
 }
 
 type Active struct {
-	SimpleState
+	sc.SimpleState
+	*testing.T
 }
 
-func (s *Active) Begin(context interface{}, event Event) Event {
+func (s *Active) Begin(context interface{}, event sc.Event) sc.Event {
+	t := context.(*testing.T)
+	s.T = t
+	t.Logf("%s Begin %s", typename(s), typename(event))
 	return nil
 }
 
-func (s *Active) GetTransitions() Transitions {
-	trans := NewTranstions()
+func (s *Active) End(event sc.Event) sc.Event {
+	s.T.Logf("%s End %s", typename(s), typename(event))
+	return nil
+}
+
+func (s *Active) GetTransitions() sc.Transitions {
+	trans := sc.NewTranstions()
 	trans.RegisterTransition((*EvReset)(nil), (*Active)(nil))
 	return trans
 }
 
-type Stopped struct {
-	SimpleState
+func (s *Active) InitialChildState() sc.State {
+	s.T.Logf("%s InitialChildState", typename(s))
+	return (*Stopped)(nil)
 }
 
-func (s *Stopped) GetTransitions() Transitions {
-	trans := NewTranstions()
+type Stopped struct {
+	sc.SimpleState
+	*testing.T
+}
+
+func (s *Stopped) Begin(context interface{}, event sc.Event) sc.Event {
+	t := context.(*testing.T)
+	s.T = t
+	t.Logf("%s Begin %s", typename(s), typename(event))
+	return nil
+}
+
+func (s *Stopped) End(event sc.Event) sc.Event {
+	s.T.Logf("%s End %s", typename(s), typename(event))
+	return nil
+}
+
+func (s *Stopped) GetTransitions() sc.Transitions {
+	trans := sc.NewTranstions()
 	trans.RegisterTransition((*EvStartStop)(nil), (*Running)(nil))
 	return trans
 }
 
-func (s *Stopped) Begin(context interface{}, event Event) Event {
+type Running struct {
+	sc.SimpleState
+	*testing.T
+}
+
+func (s *Running) Begin(context interface{}, event sc.Event) sc.Event {
+	t := context.(*testing.T)
+	s.T = t
+	t.Logf("%s Begin %s", typename(s), typename(event))
 	return nil
 }
 
-type Running struct {
-	SimpleState
+func (s *Running) End(event sc.Event) sc.Event {
+	s.T.Logf("%s End %s", typename(s), typename(event))
+	return nil
 }
 
-func (s *Running) GetTransitions() Transitions {
-	trans := NewTranstions()
+func (s *Running) GetTransitions() sc.Transitions {
+	trans := sc.NewTranstions()
 	trans.RegisterTransition((*EvStartStop)(nil), (*Stopped)(nil))
 	return trans
 }
 
-func (s *Running) Begin(context interface{}, event Event) Event {
-	return nil
+func typename(v interface{}) string {
+	if v == nil {
+		return "nil"
+	}
+	return reflect.TypeOf(v).Elem().Name()
 }
 
 func TestStopWatch(t *testing.T) {
-	stopWatch := NewStateMachine((*Stopped)(nil))
-	require.NoError(t, stopWatch.Initiate(nil))
-	require.IsType(t, (*Stopped)(nil), stopWatch.currentState)
+	stopWatch := sc.NewStateMachine((*Active)(nil), t)
+	require.Nil(t, nil, stopWatch.CurrentState())
+	require.NoError(t, stopWatch.Initiate())
+	stopWatch.Run()
+	defer stopWatch.Close()
+
+	active := stopWatch.CurrentState().(*Active)
+	require.IsType(t, (*Active)(nil), active)
+
+	require.IsType(t, (*Stopped)(nil), active.CurrentState())
 	stopWatch.ProcessEvent((*EvStartStop)(nil))
-	require.IsType(t, (*Running)(nil), stopWatch.currentState)
+	stopWatch.Run()
+
+	require.IsType(t, (*Running)(nil), active.CurrentState())
 	stopWatch.ProcessEvent((*EvStartStop)(nil))
-	require.IsType(t, (*Stopped)(nil), stopWatch.currentState)
+	stopWatch.Run()
+
+	require.IsType(t, (*Stopped)(nil), active.CurrentState())
 }

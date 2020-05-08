@@ -4,12 +4,6 @@ import "fmt"
 
 type Event interface{}
 
-type EvInit struct {
-}
-
-type EvClose struct {
-}
-
 type EventError struct {
 	error
 }

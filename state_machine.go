@@ -7,80 +7,92 @@ import (
 
 type StateMachine struct {
 	initialState reflect.Type
+	context      interface{}
+	events       []Event
 
-	context            interface{}
 	currentState       State
 	currentTransitions Transitions
-	events             []Event
 }
 
-func NewStateMachine(initialState State) *StateMachine {
+func NewStateMachine(initialState State, context interface{}) *StateMachine {
 	return &StateMachine{
 		initialState: reflect.TypeOf(initialState),
+		context:      context,
 		events:       make([]Event, 0, 16),
 	}
 }
 
-func (sm *StateMachine) Close() {
-	sm.currentState.End((*EvClose)(nil))
+func (machine *StateMachine) Close() {
+	machine.transit(nil, nil)
 }
 
-func (sm *StateMachine) Initiate(context interface{}) error {
-	if sm.currentState != nil {
+func (machine *StateMachine) CurrentState() State {
+	return machine.currentState
+}
+
+func (machine *StateMachine) Initiate() error {
+	if machine.currentState != nil {
 		return fmt.Errorf("already running")
 	}
 
-	sm.context = context
-	sm.transit(sm.initialState, (*EvInit)(nil))
-
+	machine.transit(machine.initialState, nil)
 	return nil
 }
 
-func (sm *StateMachine) PostEvent(e Event) {
-	sm.events = append(sm.events, e)
+func (machine *StateMachine) PostEvent(e Event) {
+	machine.events = append(machine.events, e)
 }
 
-func (sm *StateMachine) ProcessEvent(e Event) {
-	next, ok := sm.currentTransitions[reflect.TypeOf(e)]
+func (machine *StateMachine) ProcessEvent(e Event) {
+	ne := machine.currentState.react(e)
+	if ne != nil {
+		machine.PostEvent(ne)
+	}
+
+	next, ok := machine.currentTransitions[reflect.TypeOf(e)]
 	if ok {
-		sm.transit(next, e)
-	} else {
-		ne := sm.currentState.React(e)
-		if ne != nil {
-			sm.PostEvent(ne)
-		}
+		machine.transit(next, e)
 	}
 
-	for e := sm.currentState.GetEvent(); e != nil; e = sm.currentState.GetEvent() {
-		sm.PostEvent(e)
+	for e := machine.currentState.GetEvent(); e != nil; e = machine.currentState.GetEvent() {
+		machine.PostEvent(e)
 	}
 }
 
-func (sm *StateMachine) Run() {
-	if len(sm.events) <= 0 {
+func (machine *StateMachine) Run() {
+	if len(machine.events) <= 0 {
 		return
 	}
 
-	events := sm.events
-	sm.events = make([]Event, 0, 16)
+	events := machine.events
+	machine.events = make([]Event, 0, 16)
 
 	for _, e := range events {
-		sm.ProcessEvent(e)
+		machine.ProcessEvent(e)
 	}
 }
 
-func (sm *StateMachine) transit(s reflect.Type, event Event) {
-	if sm.currentState != nil {
-		if e := sm.currentState.End(event); e != nil {
-			sm.PostEvent(e)
+func (machine *StateMachine) transit(stateType reflect.Type, event Event) {
+	if machine.currentState != nil {
+		if e := machine.currentState.End(event); e != nil {
+			machine.PostEvent(e)
 		}
+		machine.currentState.close()
 	}
 
-	state := reflect.New(s.Elem()).Interface().(State)
-	sm.currentState = state
-	sm.currentTransitions = state.GetTransitions()
+	if stateType == nil {
+		return
+	}
 
-	if e := state.Begin(sm.context, nil); e != nil {
-		sm.PostEvent(e)
+	nextState := reflect.New(stateType.Elem()).Interface().(State)
+	machine.currentState = nextState
+	machine.currentTransitions = nextState.GetTransitions()
+
+	if e := machine.currentState.initiate(machine, machine.context, event); e != nil {
+		machine.PostEvent(e)
+	}
+
+	if e := machine.currentState.Begin(machine.context, event); e != nil {
+		machine.PostEvent(e)
 	}
 }

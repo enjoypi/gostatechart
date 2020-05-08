@@ -16,5 +16,6 @@
 
 # Others
 .idea/
+.vscode/
 go.sum
 

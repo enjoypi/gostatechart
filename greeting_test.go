@@ -1,36 +1,36 @@
-package gostatechart
+package gostatechart_test
 
 import (
 	"reflect"
 	"testing"
 
+	sc "github.com/enjoypi/gostatechart"
 	"github.com/stretchr/testify/require"
 )
 
 type Greeting struct {
-	SimpleState
+	sc.SimpleState
 }
 
 type eGreetingBegun struct {
 }
 
 // entry
-func (s *Greeting) Begin(context interface{}, event Event) Event {
+func (s *Greeting) Begin(context interface{}, event sc.Event) sc.Event {
 	return &eGreetingBegun{}
 }
 
-// exit
-func (s *Greeting) End(event Event) Event {
+func (s *Greeting) GetTransitions() sc.Transitions {
 	return nil
 }
 
 func TestGreeting(t *testing.T) {
-	sm := NewStateMachine(&Greeting{})
+	sm := sc.NewStateMachine(&Greeting{}, t)
 	defer func() {
 		sm.Close()
 	}()
-	require.NoError(t, sm.Initiate(t))
-	require.IsType(t, (*Greeting)(nil), sm.currentState)
+	require.NoError(t, sm.Initiate())
+	require.IsType(t, (*Greeting)(nil), sm.CurrentState())
 }
 
 func BenchmarkTypeOf(b *testing.B) {
