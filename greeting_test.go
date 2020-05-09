@@ -10,26 +10,34 @@ import (
 
 type Greeting struct {
 	sc.SimpleState
+	*testing.T
 }
 
-type eGreetingBegun struct {
+type EvGreetingBegun struct {
 }
 
 // entry
 func (s *Greeting) Begin(context interface{}, event sc.Event) sc.Event {
-	return &eGreetingBegun{}
+	s.RegisterReaction((*EvGreetingBegun)(nil), s.OnBegun)
+	s.T = context.(*testing.T)
+	return &EvGreetingBegun{}
 }
 
 func (s *Greeting) GetTransitions() sc.Transitions {
 	return nil
 }
 
+func (s *Greeting) OnBegun(event sc.Event) sc.Event {
+	s.T.Logf("%#v", event)
+	return nil
+}
+
 func TestGreeting(t *testing.T) {
 	sm := sc.NewStateMachine(&Greeting{}, t)
 	defer func() {
-		sm.Close()
+		sm.Close(nil)
 	}()
-	require.NoError(t, sm.Initiate())
+	require.NoError(t, sm.Initiate(nil))
 	require.IsType(t, (*Greeting)(nil), sm.CurrentState())
 }
 

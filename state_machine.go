@@ -22,20 +22,21 @@ func NewStateMachine(initialState State, context interface{}) *StateMachine {
 	}
 }
 
-func (machine *StateMachine) Close() {
-	machine.transit(nil, nil)
+func (machine *StateMachine) Close(event Event) {
+	machine.transit(nil, event)
 }
 
 func (machine *StateMachine) CurrentState() State {
 	return machine.currentState
 }
 
-func (machine *StateMachine) Initiate() error {
+func (machine *StateMachine) Initiate(event Event) error {
 	if machine.currentState != nil {
 		return fmt.Errorf("already running")
 	}
 
-	machine.transit(machine.initialState, nil)
+	machine.transit(machine.initialState, event)
+	machine.run()
 	return nil
 }
 
@@ -57,9 +58,11 @@ func (machine *StateMachine) ProcessEvent(e Event) {
 	for e := machine.currentState.GetEvent(); e != nil; e = machine.currentState.GetEvent() {
 		machine.PostEvent(e)
 	}
+
+	machine.run()
 }
 
-func (machine *StateMachine) Run() {
+func (machine *StateMachine) run() {
 	if len(machine.events) <= 0 {
 		return
 	}
@@ -74,10 +77,10 @@ func (machine *StateMachine) Run() {
 
 func (machine *StateMachine) transit(stateType reflect.Type, event Event) {
 	if machine.currentState != nil {
+		machine.currentState.close(event)
 		if e := machine.currentState.End(event); e != nil {
 			machine.PostEvent(e)
 		}
-		machine.currentState.close()
 	}
 
 	if stateType == nil {
@@ -88,7 +91,7 @@ func (machine *StateMachine) transit(stateType reflect.Type, event Event) {
 	machine.currentState = nextState
 	machine.currentTransitions = nextState.GetTransitions()
 
-	if e := machine.currentState.initiate(machine, machine.context, event); e != nil {
+	if e := machine.currentState.initiate(machine, nextState, machine.context, event); e != nil {
 		machine.PostEvent(e)
 	}
 
