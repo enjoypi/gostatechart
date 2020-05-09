@@ -18,7 +18,7 @@ type EvGreetingBegun struct {
 
 // entry
 func (s *Greeting) Begin(context interface{}, event sc.Event) sc.Event {
-	s.RegisterReaction((*EvGreetingBegun)(nil), s.OnBegun)
+	_ = s.RegisterReaction((*EvGreetingBegun)(nil), s.OnBegun)
 	s.T = context.(*testing.T)
 	return &EvGreetingBegun{}
 }

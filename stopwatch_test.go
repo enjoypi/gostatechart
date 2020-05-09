@@ -7,6 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func logf(t *testing.T, format string, args ...interface{}) {
+	if t != nil {
+		t.Logf(format, args...)
+	}
+}
+
 type EvStartStop struct {
 }
 
@@ -22,13 +28,15 @@ type Active struct {
 }
 
 func (s *Active) Begin(context interface{}, event sc.Event) sc.Event {
-	s.T = context.(*testing.T)
-	s.T.Logf("%T Begin %#v", s, event)
+	if context != nil {
+		s.T = context.(*testing.T)
+	}
+	logf(s.T, "%T Begin %#v", s, event)
 	return nil
 }
 
 func (s *Active) End(event sc.Event) sc.Event {
-	s.T.Logf("%T End %#v", s, event)
+	logf(s.T, "%T End %#v", s, event)
 	return nil
 }
 
@@ -48,13 +56,15 @@ type Stopped struct {
 }
 
 func (s *Stopped) Begin(context interface{}, event sc.Event) sc.Event {
-	s.T = context.(*testing.T)
-	s.T.Logf("%T Begin %#v", s, event)
+	if context != nil {
+		s.T = context.(*testing.T)
+	}
+	logf(s.T, "%T Begin %#v", s, event)
 	return nil
 }
 
 func (s *Stopped) End(event sc.Event) sc.Event {
-	s.T.Logf("%T End %#v", s, event)
+	logf(s.T, "%T End %#v", s, event)
 	return nil
 }
 
@@ -70,13 +80,15 @@ type Running struct {
 }
 
 func (s *Running) Begin(context interface{}, event sc.Event) sc.Event {
-	s.T = context.(*testing.T)
-	s.T.Logf("%T Begin %#v", s, event)
+	if context != nil {
+		s.T = context.(*testing.T)
+	}
+	logf(s.T, "%T Begin %#v", s, event)
 	return nil
 }
 
 func (s *Running) End(event sc.Event) sc.Event {
-	s.T.Logf("%T End %#v", s, event)
+	logf(s.T, "%T End %#v", s, event)
 	return nil
 }
 
@@ -118,4 +130,18 @@ func TestStopWatch(t *testing.T) {
 	stopWatch.ProcessEvent(&EvReset{})
 	require.IsType(t, (*Active)(nil), stopWatch.CurrentState())
 	require.NotEqual(t, active, stopWatch.CurrentState())
+}
+
+func BenchmarkStopWatch(b *testing.B) {
+	stopWatch := sc.NewStateMachine((*Active)(nil), nil)
+	stopWatch.CurrentState()
+	_ = stopWatch.Initiate(nil)
+	defer func() {
+		stopWatch.Close(&EvClose{})
+	}()
+
+	e := &EvStartStop{}
+	for i := 0; i < b.N; i++ {
+		stopWatch.ProcessEvent(e)
+	}
 }
