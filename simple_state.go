@@ -77,9 +77,11 @@ func (state *SimpleState) initiate(parent *StateMachine, self State, context int
 }
 
 func (state *SimpleState) react(event Event) (ret Event) {
-	reaction, ok := state.reactions[reflect.TypeOf(event)]
-	if ok {
-		ret = reaction(event)
+	if state.reactions != nil {
+		reaction, ok := state.reactions[reflect.TypeOf(event)]
+		if ok {
+			ret = reaction(event)
+		}
 	}
 
 	machine := state.machine
