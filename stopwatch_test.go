@@ -120,7 +120,7 @@ func TestStopWatch(t *testing.T) {
 	require.NoError(t, stopWatch.Initiate(nil))
 	defer func() {
 		t.Log("Close")
-		stopWatch.Close(&EvClose{})
+		stopWatch.Terminate(&EvClose{})
 	}()
 
 	active := stopWatch.CurrentState().(*Active)
@@ -156,7 +156,7 @@ func BenchmarkMigrate(b *testing.B) {
 	stopWatch.CurrentState()
 	_ = stopWatch.Initiate(nil)
 	defer func() {
-		stopWatch.Close(&EvClose{})
+		stopWatch.Terminate(&EvClose{})
 	}()
 
 	e := &EvStartStop{}
@@ -170,7 +170,7 @@ func BenchmarkProcessEvent(b *testing.B) {
 	stopWatch.CurrentState()
 	_ = stopWatch.Initiate(nil)
 	defer func() {
-		stopWatch.Close(&EvClose{})
+		stopWatch.Terminate(&EvClose{})
 	}()
 
 	e := &EvSth{}

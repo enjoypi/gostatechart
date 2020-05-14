@@ -35,7 +35,7 @@ func (s *Greeting) OnBegun(event sc.Event) sc.Event {
 func TestGreeting(t *testing.T) {
 	sm := sc.NewStateMachine(&Greeting{}, t)
 	defer func() {
-		sm.Close(nil)
+		sm.Terminate(nil)
 	}()
 	require.NoError(t, sm.Initiate(nil))
 	require.IsType(t, (*Greeting)(nil), sm.CurrentState())

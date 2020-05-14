@@ -9,7 +9,7 @@ type State interface {
 	GetTransitions() Transitions
 	InitialChildState() State // implemented in SimpleState
 
-	close(event Event)
 	initiate(machine *StateMachine, state State, context interface{}, event Event) Event
 	react(event Event) Event
+	terminate(event Event)
 }

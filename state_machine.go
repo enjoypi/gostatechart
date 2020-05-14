@@ -5,6 +5,54 @@ import (
 	"reflect"
 )
 
+//namespace boost
+//{
+//namespace statechart
+//{
+//  template<
+//    class MostDerived,
+//    class InitialState,
+//    class Allocator = std::allocator< void >,
+//    class ExceptionTranslator = null_exception_translator >
+//  class state_machine : noncopyable
+//  {
+//    public:
+//      typedef MostDerived outermost_context_type;
+//
+//      void initiate();
+//      void terminate();
+//      bool terminated() const;
+//
+//      void process_event( const event_base & );
+//
+//      template< class Target >
+//      Target state_cast() const;
+//      template< class Target >
+//      Target state_downcast() const;
+//
+//      // a model of the StateBase concept
+//      typedef implementation-defined state_base_type;
+//      // a model of the standard Forward Iterator concept
+//      typedef implementation-defined state_iterator;
+//
+//      state_iterator state_begin() const;
+//      state_iterator state_end() const;
+//
+//      void unconsumed_event( const event_base & ) {}
+//
+//    protected:
+//      state_machine();
+//      ~state_machine();
+//
+//      void post_event(
+//        const intrusive_ptr< const event_base > & );
+//      void post_event( const event_base & );
+//
+//      const event_base * triggering_event() const;
+//  };
+//}
+//}
+
 type StateMachine struct {
 	initialState reflect.Type
 	context      interface{}
@@ -13,6 +61,7 @@ type StateMachine struct {
 
 	currentState       State
 	currentTransitions Transitions
+	parent             *StateMachine
 }
 
 func NewStateMachine(initialState State, context interface{}) *StateMachine {
@@ -24,10 +73,6 @@ func NewStateMachine(initialState State, context interface{}) *StateMachine {
 	}
 }
 
-func (machine *StateMachine) Close(event Event) {
-	machine.migrate(nil, event)
-}
-
 func (machine *StateMachine) CurrentState() State {
 	return machine.currentState
 }
@@ -37,13 +82,14 @@ func (machine *StateMachine) Initiate(event Event) error {
 		return fmt.Errorf("already running")
 	}
 
-	machine.migrate(machine.initialState, event)
+	machine.transit(machine.initialState, event)
 	machine.run()
 	return nil
 }
 
 func (machine *StateMachine) PostEvent(e Event) {
-	machine.events = append(machine.events, e)
+	m := machine.outermost()
+	m.events = append(m.events, e)
 }
 
 func (machine *StateMachine) ProcessEvent(e Event) {
@@ -54,14 +100,35 @@ func (machine *StateMachine) ProcessEvent(e Event) {
 
 	next, ok := machine.currentTransitions[reflect.TypeOf(e)]
 	if ok {
-		machine.migrate(next, e)
+		machine.transit(next, e)
 	}
 
-	for e := machine.currentState.GetEvent(); e != nil; e = machine.currentState.GetEvent() {
-		machine.PostEvent(e)
+	currentState := machine.currentState
+	if currentState != nil {
+		for e := currentState.GetEvent(); e != nil; e = currentState.GetEvent() {
+			machine.PostEvent(e)
+		}
 	}
 
 	machine.run()
+}
+
+func (machine *StateMachine) Terminate(event Event) {
+	if machine == nil {
+		return
+	}
+	machine.transit(nil, event)
+}
+
+func (machine *StateMachine) outermost() *StateMachine {
+	if machine == nil {
+		return nil
+	}
+
+	if machine.parent == nil {
+		return machine
+	}
+	return machine.parent.outermost()
 }
 
 func (machine *StateMachine) run() {
@@ -78,12 +145,13 @@ func (machine *StateMachine) run() {
 	machine.doubleEvents = events[:0]
 }
 
-func (machine *StateMachine) migrate(stateType reflect.Type, event Event) {
+func (machine *StateMachine) transit(stateType reflect.Type, event Event) {
 	if machine.currentState != nil {
-		machine.currentState.close(event)
+		machine.currentState.terminate(event)
 		if e := machine.currentState.End(event); e != nil {
 			machine.PostEvent(e)
 		}
+		machine.currentState = nil
 	}
 
 	if stateType == nil {
