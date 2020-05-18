@@ -48,7 +48,7 @@ func (s *Active) Begin(context interface{}, event sc.Event) sc.Event {
 		s.T = context.(*testing.T)
 	}
 	logf(s.T, "%T Begin %#v", s, event)
-	s.RegisterReaction((*EvSth)(nil), s.OnSth)
+	_ = s.RegisterReaction((*EvSth)(nil), s.OnSth)
 	return nil
 }
 
