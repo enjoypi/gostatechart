@@ -83,13 +83,16 @@ func (machine *StateMachine) Initiate(event Event) error {
 	}
 
 	machine.transit(machine.initialState, event)
-	machine.run()
 	return nil
 }
 
 func (machine *StateMachine) PostEvent(e Event) {
-	m := machine.outermost()
-	m.events = append(m.events, e)
+	if machine.parent == nil {
+		machine.events = append(machine.events, e)
+		return
+	}
+
+	machine.parent.PostEvent(e)
 }
 
 func (machine *StateMachine) ProcessEvent(e Event) {
@@ -102,7 +105,9 @@ func (machine *StateMachine) ProcessEvent(e Event) {
 	if ok {
 		machine.transit(next, e)
 	}
+}
 
+func (machine *StateMachine) Run() {
 	currentState := machine.currentState
 	if currentState != nil {
 		for e := currentState.GetEvent(); e != nil; e = currentState.GetEvent() {
@@ -110,28 +115,6 @@ func (machine *StateMachine) ProcessEvent(e Event) {
 		}
 	}
 
-	machine.run()
-}
-
-func (machine *StateMachine) Terminate(event Event) {
-	if machine == nil {
-		return
-	}
-	machine.transit(nil, event)
-}
-
-func (machine *StateMachine) outermost() *StateMachine {
-	if machine == nil {
-		return nil
-	}
-
-	if machine.parent == nil {
-		return machine
-	}
-	return machine.parent.outermost()
-}
-
-func (machine *StateMachine) run() {
 	if len(machine.events) <= 0 {
 		return
 	}
@@ -143,6 +126,13 @@ func (machine *StateMachine) run() {
 		machine.ProcessEvent(e)
 	}
 	machine.doubleEvents = events[:0]
+}
+
+func (machine *StateMachine) Terminate(event Event) {
+	if machine == nil {
+		return
+	}
+	machine.transit(nil, event)
 }
 
 func (machine *StateMachine) transit(stateType reflect.Type, event Event) {

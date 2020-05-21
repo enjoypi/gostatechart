@@ -48,7 +48,7 @@ func (s *Active) Begin(context interface{}, event sc.Event) sc.Event {
 		s.T = context.(*testing.T)
 	}
 	logf(s.T, "%T Begin %#v", s, event)
-	_ = s.RegisterReaction((*EvSth)(nil), s.OnSth)
+	s.RegisterReaction((*EvSth)(nil), s.OnSth)
 	return nil
 }
 
@@ -133,25 +133,30 @@ func TestStopWatch(t *testing.T) {
 	t.Logf("EvStartStop")
 	stopWatch.ProcessEvent(&EvStartStop{})
 	require.IsType(t, (*Running)(nil), active.CurrentState())
+	stopWatch.Run()
 
 	t.Logf("EvStartStop")
 	stopWatch.ProcessEvent(&EvStartStop{})
 	require.IsType(t, (*Stopped)(nil), active.CurrentState())
+	stopWatch.Run()
 
 	t.Logf("EvStartStop")
 	stopWatch.ProcessEvent(&EvStartStop{})
 	require.IsType(t, (*Running)(nil), active.CurrentState())
+	stopWatch.Run()
 
 	t.Logf("EvReset")
 	stopWatch.ProcessEvent(&EvReset{})
 	require.IsType(t, (*Active)(nil), stopWatch.CurrentState())
 	require.NotEqual(t, active, stopWatch.CurrentState())
+	stopWatch.Run()
 
 	t.Logf("EvSth")
 	stopWatch.ProcessEvent(&EvSth{})
+	stopWatch.Run()
 }
 
-func BenchmarkMigrate(b *testing.B) {
+func BenchmarkTransmit(b *testing.B) {
 	stopWatch := sc.NewStateMachine((*Active)(nil), nil)
 	stopWatch.CurrentState()
 	_ = stopWatch.Initiate(nil)

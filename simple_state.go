@@ -1,6 +1,8 @@
 package gostatechart
 
-import "reflect"
+import (
+	"reflect"
+)
 
 //namespace boost
 //{
@@ -99,9 +101,7 @@ import "reflect"
 //}
 
 type SimpleState struct {
-	context   interface{}
 	machine   *StateMachine
-	parent    *StateMachine
 	reactions map[reflect.Type]Reaction
 }
 
@@ -120,19 +120,19 @@ func (state *SimpleState) InitialChildState() State {
 	return nil
 }
 
-func (state *SimpleState) Context() interface{} {
-	return state.context
-}
-
 func (state *SimpleState) CurrentState() State {
 	return state.machine.CurrentState()
 }
 
-func (state *SimpleState) Outermost() *StateMachine {
-	return state.parent.outermost()
+func (state *SimpleState) HasReaction(event Event) bool {
+	if state.reactions == nil {
+		return false
+	}
+	_, ok := state.reactions[reflect.TypeOf(event)]
+	return ok
 }
 
-func (state *SimpleState) RegisterReaction(event Event, reaction Reaction) error {
+func (state *SimpleState) RegisterReaction(event Event, reaction Reaction) {
 	if state.reactions == nil {
 		state.reactions = make(map[reflect.Type]Reaction)
 	}
@@ -142,9 +142,9 @@ func (state *SimpleState) RegisterReaction(event Event, reaction Reaction) error
 		panic("event already exists")
 	}
 	state.reactions[eventType] = reaction
-	return nil
 }
 
+//nolint
 func (state *SimpleState) initiate(parent *StateMachine, self State, context interface{}, event Event) Event {
 	child := self.InitialChildState()
 	if child != nil {
@@ -155,11 +155,10 @@ func (state *SimpleState) initiate(parent *StateMachine, self State, context int
 		}
 		state.machine = machine
 	}
-	state.context = context
-	state.parent = parent
 	return nil
 }
 
+//nolint
 func (state *SimpleState) react(event Event) (ret Event) {
 	if state.reactions != nil {
 		reaction, ok := state.reactions[reflect.TypeOf(event)]
@@ -175,6 +174,7 @@ func (state *SimpleState) react(event Event) (ret Event) {
 	return ret
 }
 
+//nolint
 func (state *SimpleState) terminate(event Event) {
 	machine := state.machine
 	if machine != nil {
