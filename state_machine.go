@@ -110,7 +110,7 @@ func (machine *StateMachine) ProcessEvent(e Event) {
 func (machine *StateMachine) Run() {
 	currentState := machine.currentState
 	if currentState != nil {
-		for e := currentState.GetEvent(); e != nil; e = currentState.GetEvent() {
+		if e := currentState.GetEvent(); e != nil {
 			machine.PostEvent(e)
 		}
 	}
