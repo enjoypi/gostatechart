@@ -56,8 +56,7 @@ import (
 type StateMachine struct {
 	initialState reflect.Type
 	context      interface{}
-	events       []Event
-	doubleEvents []Event
+	events       chan Event
 
 	currentState       State
 	currentTransitions Transitions
@@ -65,11 +64,13 @@ type StateMachine struct {
 }
 
 func NewStateMachine(initialState State, context interface{}) *StateMachine {
+	if initialState == nil {
+		return nil
+	}
 	return &StateMachine{
 		initialState: reflect.TypeOf(initialState),
 		context:      context,
-		events:       make([]Event, 0, 16),
-		doubleEvents: make([]Event, 0, 16),
+		events:       make(chan Event, 32),
 	}
 }
 
@@ -88,7 +89,7 @@ func (machine *StateMachine) Initiate(event Event) error {
 
 func (machine *StateMachine) PostEvent(e Event) {
 	if machine.parent == nil {
-		machine.events = append(machine.events, e)
+		machine.events <- e
 		return
 	}
 
@@ -108,30 +109,24 @@ func (machine *StateMachine) ProcessEvent(e Event) {
 }
 
 func (machine *StateMachine) Run() {
-	currentState := machine.currentState
-	if currentState != nil {
-		if e := currentState.GetEvent(); e != nil {
-			machine.PostEvent(e)
+	for machine.currentState != nil {
+		currentState := machine.currentState
+		if currentState != nil {
+			if e := currentState.GetEvent(); e != nil {
+				machine.PostEvent(e)
+			}
 		}
-	}
 
-	if len(machine.events) <= 0 {
-		return
-	}
+		e := <-machine.events
+		if e == nil {
+			return
+		}
 
-	events := machine.events
-	machine.events = machine.doubleEvents
-
-	for _, e := range events {
 		machine.ProcessEvent(e)
 	}
-	machine.doubleEvents = events[:0]
 }
 
 func (machine *StateMachine) Terminate(event Event) {
-	if machine == nil {
-		return
-	}
 	machine.transit(nil, event)
 }
 
