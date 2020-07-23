@@ -103,6 +103,7 @@ import (
 type SimpleState struct {
 	machine   *StateMachine
 	reactions map[reflect.Type]Reaction
+	parent    *StateMachine
 }
 
 // End to override
@@ -112,6 +113,14 @@ func (state *SimpleState) End(event Event) Event {
 
 // GetEvent to override
 func (state *SimpleState) GetEvent() Event {
+	if state.machine != nil && state.machine.currentState != nil {
+		return state.machine.currentState.GetEvent()
+	}
+	return nil
+}
+
+// GetTransitions to override
+func (state *SimpleState) GetTransitions() Transitions {
 	return nil
 }
 
@@ -132,6 +141,13 @@ func (state *SimpleState) HasReaction(event Event) bool {
 	return ok
 }
 
+func (state *SimpleState) Outermost() *StateMachine {
+	if state.parent == nil {
+		return nil
+	}
+	return state.parent.Parent()
+}
+
 func (state *SimpleState) RegisterReaction(event Event, reaction Reaction) {
 	if state.reactions == nil {
 		state.reactions = make(map[reflect.Type]Reaction)
@@ -146,6 +162,7 @@ func (state *SimpleState) RegisterReaction(event Event, reaction Reaction) {
 
 //nolint
 func (state *SimpleState) initiate(parent *StateMachine, self State, context interface{}, event Event) Event {
+	state.parent = parent
 	child := self.InitialChildState()
 	if child != nil {
 		machine := NewStateMachine(child, context)

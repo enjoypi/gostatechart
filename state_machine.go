@@ -3,6 +3,7 @@ package gostatechart
 import (
 	"fmt"
 	"reflect"
+	"time"
 )
 
 //namespace boost
@@ -87,7 +88,18 @@ func (machine *StateMachine) Initiate(event Event) error {
 	return nil
 }
 
+func (machine *StateMachine) Parent() *StateMachine {
+	if machine.parent == nil {
+		return machine
+	}
+	return machine.parent.Parent()
+}
+
 func (machine *StateMachine) PostEvent(e Event) {
+	if e == nil {
+		return
+	}
+
 	if machine.parent == nil {
 		machine.events <- e
 		return
@@ -117,12 +129,12 @@ func (machine *StateMachine) Run() {
 			}
 		}
 
-		e := <-machine.events
-		if e == nil {
-			return
+		select {
+		case e := <-machine.events:
+			machine.ProcessEvent(e)
+		case <-time.After(10 * time.Millisecond):
+			continue
 		}
-
-		machine.ProcessEvent(e)
 	}
 }
 
