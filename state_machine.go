@@ -120,7 +120,7 @@ func (machine *StateMachine) ProcessEvent(e Event) {
 	}
 }
 
-func (machine *StateMachine) Run() {
+func (machine *StateMachine) Run(exitChan chan int) {
 	for machine.currentState != nil {
 		currentState := machine.currentState
 		if currentState != nil {
@@ -134,6 +134,9 @@ func (machine *StateMachine) Run() {
 			machine.ProcessEvent(e)
 		case <-time.After(10 * time.Millisecond):
 			continue
+		case <-exitChan:
+			machine.Terminate(nil)
+			return
 		}
 	}
 }
