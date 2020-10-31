@@ -44,7 +44,7 @@ func TestGreeting(t *testing.T) {
 func BenchmarkTypeOf(b *testing.B) {
 	g := &Greeting{}
 	for i := 0; i < b.N; i++ {
-		reflect.TypeOf(g)
+		_ = reflect.TypeOf(g)
 	}
 }
 

@@ -133,27 +133,27 @@ func TestStopWatch(t *testing.T) {
 	t.Logf("EvStartStop")
 	stopWatch.ProcessEvent(&EvStartStop{})
 	require.IsType(t, (*Running)(nil), active.CurrentState())
-	stopWatch.Run()
+	stopWatch.Run(nil)
 
 	t.Logf("EvStartStop")
 	stopWatch.ProcessEvent(&EvStartStop{})
 	require.IsType(t, (*Stopped)(nil), active.CurrentState())
-	stopWatch.Run()
+	stopWatch.Run(nil)
 
 	t.Logf("EvStartStop")
 	stopWatch.ProcessEvent(&EvStartStop{})
 	require.IsType(t, (*Running)(nil), active.CurrentState())
-	stopWatch.Run()
+	stopWatch.Run(nil)
 
 	t.Logf("EvReset")
 	stopWatch.ProcessEvent(&EvReset{})
 	require.IsType(t, (*Active)(nil), stopWatch.CurrentState())
 	require.NotEqual(t, active, stopWatch.CurrentState())
-	stopWatch.Run()
+	stopWatch.Run(nil)
 
 	t.Logf("EvSth")
 	stopWatch.ProcessEvent(&EvSth{})
-	stopWatch.Run()
+	stopWatch.Run(nil)
 }
 
 func BenchmarkTransmit(b *testing.B) {
