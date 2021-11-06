@@ -176,7 +176,7 @@ func (state *SimpleState) initiate(parent *StateMachine, self State, context int
 }
 
 //nolint
-func (state *SimpleState) react(event Event) (ret Event) {
+func (state *SimpleState) React(event Event) (ret Event) {
 	if state.reactions != nil {
 		reaction, ok := state.reactions[reflect.TypeOf(event)]
 		if ok {
