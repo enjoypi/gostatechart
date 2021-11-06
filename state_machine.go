@@ -109,7 +109,7 @@ func (machine *StateMachine) PostEvent(e Event) {
 }
 
 func (machine *StateMachine) ProcessEvent(e Event) {
-	ne := machine.currentState.react(e)
+	ne := machine.currentState.React(e)
 	if ne != nil {
 		machine.PostEvent(ne)
 	}
