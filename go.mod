@@ -1,3 +1,3 @@
-module gostatechart
+module github.com/enjoypi/gostatechart
 
 go 1.17
