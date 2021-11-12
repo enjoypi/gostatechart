@@ -137,7 +137,7 @@ func (state *SimpleState) HasReaction(event Event) bool {
 	if state.reactions == nil {
 		return false
 	}
-	_, ok := state.reactions[reflect.TypeOf(event)]
+	_, ok := state.reactions[TypeOf(event)]
 	return ok
 }
 
@@ -153,7 +153,7 @@ func (state *SimpleState) RegisterReaction(event Event, reaction Reaction) {
 		state.reactions = make(map[reflect.Type]Reaction)
 	}
 
-	eventType := reflect.TypeOf(event)
+	eventType := TypeOf(event)
 	if _, ok := state.reactions[eventType]; ok {
 		panic("event already exists")
 	}
@@ -178,7 +178,7 @@ func (state *SimpleState) initiate(parent *StateMachine, self State, context int
 //nolint
 func (state *SimpleState) React(event Event) (ret Event) {
 	if state.reactions != nil {
-		reaction, ok := state.reactions[reflect.TypeOf(event)]
+		reaction, ok := state.reactions[TypeOf(event)]
 		if ok {
 			ret = reaction(event)
 		}
