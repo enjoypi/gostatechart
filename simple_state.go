@@ -1,6 +1,7 @@
 package gostatechart
 
 import (
+	"context"
 	"reflect"
 )
 
@@ -107,7 +108,7 @@ type SimpleState struct {
 }
 
 // End to override
-func (state *SimpleState) End(event Event) Event {
+func (state *SimpleState) End(ctx context.Context, event Event) Event {
 	return nil
 }
 
@@ -161,11 +162,11 @@ func (state *SimpleState) RegisterReaction(event Event, reaction Reaction) {
 }
 
 //nolint
-func (state *SimpleState) initiate(parent *StateMachine, self State, context interface{}, event Event) Event {
+func (state *SimpleState) initiate(ctx context.Context, parent *StateMachine, self State, event Event) Event {
 	state.parent = parent
 	child := self.InitialChildState()
 	if child != nil {
-		machine := NewStateMachine(child, context)
+		machine := NewStateMachine(child, ctx)
 		machine.parent = parent
 		if err := machine.Initiate(event); err != nil {
 			return err
@@ -176,17 +177,17 @@ func (state *SimpleState) initiate(parent *StateMachine, self State, context int
 }
 
 //nolint
-func (state *SimpleState) React(event Event) (ret Event) {
+func (state *SimpleState) React(ctx context.Context, event Event) (ret Event) {
 	if state.reactions != nil {
 		reaction, ok := state.reactions[TypeOf(event)]
 		if ok {
-			ret = reaction(event)
+			ret = reaction(ctx, event)
 		}
 	}
 
 	machine := state.machine
 	if machine != nil {
-		machine.ProcessEvent(event)
+		machine.ProcessEvent(ctx, event)
 	}
 	return ret
 }

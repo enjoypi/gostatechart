@@ -1,6 +1,7 @@
 package gostatechart_test
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -17,9 +18,9 @@ type EvGreetingBegun struct {
 }
 
 // entry
-func (s *Greeting) Begin(context interface{}, event sc.Event) sc.Event {
+func (s *Greeting) Begin(ctx context.Context, event sc.Event) sc.Event {
 	s.RegisterReaction((*EvGreetingBegun)(nil), s.OnBegun)
-	s.T = context.(*testing.T)
+	s.T = ctx.Value("testing.T").(*testing.T)
 	return &EvGreetingBegun{}
 }
 
@@ -27,13 +28,14 @@ func (s *Greeting) GetTransitions() sc.Transitions {
 	return nil
 }
 
-func (s *Greeting) OnBegun(event sc.Event) sc.Event {
+func (s *Greeting) OnBegun(ctx context.Context, event sc.Event) sc.Event {
 	s.T.Logf("%#v", event)
 	return nil
 }
 
 func TestGreeting(t *testing.T) {
-	sm := sc.NewStateMachine(&Greeting{}, t)
+	ctx := context.WithValue(context.Background(), "testing.T", t)
+	sm := sc.NewStateMachine(&Greeting{}, ctx)
 	defer func() {
 		sm.Terminate(nil)
 	}()

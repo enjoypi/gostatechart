@@ -1,6 +1,7 @@
 package gostatechart_test
 
 import (
+	"context"
 	"testing"
 
 	sc "github.com/enjoypi/gostatechart"
@@ -43,16 +44,17 @@ type Active struct {
 	*testing.T
 }
 
-func (s *Active) Begin(context interface{}, event sc.Event) sc.Event {
-	if context != nil {
-		s.T = context.(*testing.T)
+func (s *Active) Begin(ctx context.Context, event sc.Event) sc.Event {
+	t := ctx.Value("testing.T")
+	if t != nil {
+		s.T = t.(*testing.T)
 	}
 	logf(s.T, "%T Begin %#v", s, event)
 	s.RegisterReaction((*EvSth)(nil), s.OnSth)
 	return nil
 }
 
-func (s *Active) End(event sc.Event) sc.Event {
+func (s *Active) End(ctx context.Context, event sc.Event) sc.Event {
 	logf(s.T, "%T End %#v", s, event)
 	return nil
 }
@@ -65,7 +67,7 @@ func (s *Active) InitialChildState() sc.State {
 	return (*Stopped)(nil)
 }
 
-func (s *Active) OnSth(event sc.Event) sc.Event {
+func (s *Active) OnSth(ctx context.Context, event sc.Event) sc.Event {
 	logf(s.T, "%T OnSth %#v", s, event)
 	return nil
 }
@@ -75,15 +77,16 @@ type Stopped struct {
 	*testing.T
 }
 
-func (s *Stopped) Begin(context interface{}, event sc.Event) sc.Event {
-	if context != nil {
-		s.T = context.(*testing.T)
+func (s *Stopped) Begin(ctx context.Context, event sc.Event) sc.Event {
+	t := ctx.Value("testing.T")
+	if t != nil {
+		s.T = t.(*testing.T)
 	}
 	logf(s.T, "%T Begin %#v", s, event)
 	return nil
 }
 
-func (s *Stopped) End(event sc.Event) sc.Event {
+func (s *Stopped) End(ctx context.Context, event sc.Event) sc.Event {
 	logf(s.T, "%T End %#v", s, event)
 	return nil
 }
@@ -97,15 +100,16 @@ type Running struct {
 	*testing.T
 }
 
-func (s *Running) Begin(context interface{}, event sc.Event) sc.Event {
-	if context != nil {
-		s.T = context.(*testing.T)
+func (s *Running) Begin(ctx context.Context, event sc.Event) sc.Event {
+	t := ctx.Value("testing.T")
+	if t != nil {
+		s.T = t.(*testing.T)
 	}
 	logf(s.T, "%T Begin %#v", s, event)
 	return nil
 }
 
-func (s *Running) End(event sc.Event) sc.Event {
+func (s *Running) End(ctx context.Context, event sc.Event) sc.Event {
 	logf(s.T, "%T End %#v", s, event)
 	return nil
 }
@@ -115,7 +119,8 @@ func (s *Running) GetTransitions() sc.Transitions {
 }
 
 func TestStopWatch(t *testing.T) {
-	stopWatch := sc.NewStateMachine((*Active)(nil), t)
+	ctx := context.WithValue(context.Background(), "testing.T", t)
+	stopWatch := sc.NewStateMachine((*Active)(nil), ctx)
 	require.Nil(t, stopWatch.CurrentState())
 	require.NoError(t, stopWatch.Initiate(nil))
 	defer func() {
@@ -131,33 +136,34 @@ func TestStopWatch(t *testing.T) {
 	require.IsType(t, (*Stopped)(nil), active.CurrentState())
 
 	t.Logf("EvStartStop")
-	stopWatch.ProcessEvent(&EvStartStop{})
+	stopWatch.ProcessEvent(ctx, &EvStartStop{})
 	require.IsType(t, (*Running)(nil), active.CurrentState())
 	stopWatch.Run(nil)
 
 	t.Logf("EvStartStop")
-	stopWatch.ProcessEvent(&EvStartStop{})
+	stopWatch.ProcessEvent(ctx, &EvStartStop{})
 	require.IsType(t, (*Stopped)(nil), active.CurrentState())
 	stopWatch.Run(nil)
 
 	t.Logf("EvStartStop")
-	stopWatch.ProcessEvent(&EvStartStop{})
+	stopWatch.ProcessEvent(ctx, &EvStartStop{})
 	require.IsType(t, (*Running)(nil), active.CurrentState())
 	stopWatch.Run(nil)
 
 	t.Logf("EvReset")
-	stopWatch.ProcessEvent(&EvReset{})
+	stopWatch.ProcessEvent(ctx, &EvReset{})
 	require.IsType(t, (*Active)(nil), stopWatch.CurrentState())
 	require.NotEqual(t, active, stopWatch.CurrentState())
 	stopWatch.Run(nil)
 
 	t.Logf("EvSth")
-	stopWatch.ProcessEvent(&EvSth{})
+	stopWatch.ProcessEvent(ctx, &EvSth{})
 	stopWatch.Run(nil)
 }
 
 func BenchmarkTransmit(b *testing.B) {
-	stopWatch := sc.NewStateMachine((*Active)(nil), nil)
+	ctx := context.WithValue(context.Background(), "testing.B", b)
+	stopWatch := sc.NewStateMachine((*Active)(nil), ctx)
 	stopWatch.CurrentState()
 	_ = stopWatch.Initiate(nil)
 	defer func() {
@@ -166,11 +172,12 @@ func BenchmarkTransmit(b *testing.B) {
 
 	e := &EvStartStop{}
 	for i := 0; i < b.N; i++ {
-		stopWatch.ProcessEvent(e)
+		stopWatch.ProcessEvent(ctx, e)
 	}
 }
 
 func BenchmarkProcessEvent(b *testing.B) {
+	ctx := context.WithValue(context.Background(), "testing.B", b)
 	stopWatch := sc.NewStateMachine((*Active)(nil), nil)
 	stopWatch.CurrentState()
 	_ = stopWatch.Initiate(nil)
@@ -180,6 +187,6 @@ func BenchmarkProcessEvent(b *testing.B) {
 
 	e := &EvSth{}
 	for i := 0; i < b.N; i++ {
-		stopWatch.ProcessEvent(e)
+		stopWatch.ProcessEvent(ctx, e)
 	}
 }

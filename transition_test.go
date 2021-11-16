@@ -1,6 +1,7 @@
 package gostatechart_test
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
@@ -16,7 +17,7 @@ type st1 struct {
 	sc.SimpleState
 }
 
-func (s *st1) Begin(context interface{}, event sc.Event) sc.Event {
+func (s *st1) Begin(ctx context.Context, event sc.Event) sc.Event {
 	panic("implement me")
 }
 
@@ -28,7 +29,7 @@ type st2 struct {
 	sc.SimpleState
 }
 
-func (s *st2) Begin(context interface{}, event sc.Event) sc.Event {
+func (s *st2) Begin(ctx context.Context, event sc.Event) sc.Event {
 	panic("implement me")
 }
 

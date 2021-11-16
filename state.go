@@ -1,17 +1,19 @@
 package gostatechart
 
-type Reaction func(e Event) Event
+import "context"
+
+type Reaction func(ctx context.Context, e Event) Event
 
 type State interface {
-	Begin(context interface{}, event Event) Event
-	End(event Event) Event       // implemented in SimpleState
-	GetEvent() Event             // implemented in SimpleState
-	GetTransitions() Transitions // implemented in SimpleState
-	InitialChildState() State    // implemented in SimpleState
-	React(event Event) Event
+	Begin(ctx context.Context, event Event) Event
+	End(ctx context.Context, event Event) Event // implemented in SimpleState
+	GetEvent() Event                            // implemented in SimpleState
+	GetTransitions() Transitions                // implemented in SimpleState
+	InitialChildState() State                   // implemented in SimpleState
+	React(ctx context.Context, event Event) Event
 
 	// implemented in SimpleState
-	initiate(machine *StateMachine, state State, context interface{}, event Event) Event
+	initiate(ctx context.Context, machine *StateMachine, state State, event Event) Event
 	// terminate my machine
 	terminate(event Event)
 }

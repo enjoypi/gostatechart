@@ -1,6 +1,7 @@
 package gostatechart
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"time"
@@ -56,7 +57,7 @@ import (
 
 type StateMachine struct {
 	initialState reflect.Type
-	context      interface{}
+	ctx          context.Context
 	events       chan Event
 
 	currentState       State
@@ -64,13 +65,13 @@ type StateMachine struct {
 	parent             *StateMachine
 }
 
-func NewStateMachine(initialState State, context interface{}) *StateMachine {
+func NewStateMachine(initialState State, ctx context.Context) *StateMachine {
 	if initialState == nil {
 		return nil
 	}
 	return &StateMachine{
 		initialState: reflect.TypeOf(initialState),
-		context:      context,
+		ctx:          ctx,
 		events:       make(chan Event, 32),
 	}
 }
@@ -108,8 +109,8 @@ func (machine *StateMachine) PostEvent(e Event) {
 	machine.parent.PostEvent(e)
 }
 
-func (machine *StateMachine) ProcessEvent(e Event) {
-	ne := machine.currentState.React(e)
+func (machine *StateMachine) ProcessEvent(ctx context.Context, e Event) {
+	ne := machine.currentState.React(ctx, e)
 	if ne != nil {
 		machine.PostEvent(ne)
 	}
@@ -131,7 +132,7 @@ func (machine *StateMachine) Run(exitChan chan int) {
 
 		select {
 		case e := <-machine.events:
-			machine.ProcessEvent(e)
+			machine.ProcessEvent(context.Background(), e)
 		case <-time.After(10 * time.Millisecond):
 			continue
 		case <-exitChan:
@@ -148,7 +149,7 @@ func (machine *StateMachine) Terminate(event Event) {
 func (machine *StateMachine) transit(stateType reflect.Type, event Event) {
 	if machine.currentState != nil {
 		machine.currentState.terminate(event)
-		if e := machine.currentState.End(event); e != nil {
+		if e := machine.currentState.End(context.Background(), event); e != nil {
 			machine.PostEvent(e)
 		}
 		machine.currentState = nil
@@ -162,11 +163,11 @@ func (machine *StateMachine) transit(stateType reflect.Type, event Event) {
 	machine.currentState = nextState
 	machine.currentTransitions = nextState.GetTransitions()
 
-	if e := machine.currentState.initiate(machine, nextState, machine.context, event); e != nil {
+	if e := machine.currentState.initiate(machine.ctx, machine, nextState, event); e != nil {
 		machine.PostEvent(e)
 	}
 
-	if e := machine.currentState.Begin(machine.context, event); e != nil {
+	if e := machine.currentState.Begin(machine.ctx, event); e != nil {
 		machine.PostEvent(e)
 	}
 }
