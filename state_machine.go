@@ -109,8 +109,8 @@ func (machine *StateMachine) PostEvent(e Event) {
 	machine.parent.PostEvent(e)
 }
 
-func (machine *StateMachine) ProcessEvent(ctx context.Context, e Event) {
-	ne := machine.currentState.React(ctx, e)
+func (machine *StateMachine) ProcessEvent(ctx context.Context, e Event, args ...interface{}) {
+	ne := machine.currentState.React(ctx, e, args...)
 	if ne != nil {
 		machine.PostEvent(ne)
 	}

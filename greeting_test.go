@@ -28,7 +28,7 @@ func (s *Greeting) GetTransitions() sc.Transitions {
 	return nil
 }
 
-func (s *Greeting) OnBegun(ctx context.Context, event sc.Event) sc.Event {
+func (s *Greeting) OnBegun(ctx context.Context, event sc.Event, args ...interface{}) sc.Event {
 	s.T.Logf("%#v", event)
 	return nil
 }

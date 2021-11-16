@@ -177,11 +177,11 @@ func (state *SimpleState) initiate(ctx context.Context, parent *StateMachine, se
 }
 
 //nolint
-func (state *SimpleState) React(ctx context.Context, event Event) (ret Event) {
+func (state *SimpleState) React(ctx context.Context, event Event, args ...interface{}) (ret Event) {
 	if state.reactions != nil {
 		reaction, ok := state.reactions[TypeOf(event)]
 		if ok {
-			ret = reaction(ctx, event)
+			ret = reaction(ctx, event, args...)
 		}
 	}
 

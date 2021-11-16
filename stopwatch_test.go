@@ -67,7 +67,7 @@ func (s *Active) InitialChildState() sc.State {
 	return (*Stopped)(nil)
 }
 
-func (s *Active) OnSth(ctx context.Context, event sc.Event) sc.Event {
+func (s *Active) OnSth(ctx context.Context, event sc.Event, args ...interface{}) sc.Event {
 	logf(s.T, "%T OnSth %#v", s, event)
 	return nil
 }
