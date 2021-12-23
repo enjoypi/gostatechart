@@ -35,7 +35,7 @@ func (s *Greeting) OnBegun(ctx context.Context, event sc.Event, args ...interfac
 
 func TestGreeting(t *testing.T) {
 	ctx := context.WithValue(context.Background(), "testing.T", t)
-	sm := sc.NewStateMachine(&Greeting{}, ctx)
+	sm := sc.NewStateMachine(ctx, &Greeting{})
 	defer func() {
 		sm.Terminate(nil)
 	}()

@@ -65,7 +65,7 @@ type StateMachine struct {
 	parent             *StateMachine
 }
 
-func NewStateMachine(initialState State, ctx context.Context) *StateMachine {
+func NewStateMachine(ctx context.Context, initialState State) *StateMachine {
 	if initialState == nil {
 		return nil
 	}

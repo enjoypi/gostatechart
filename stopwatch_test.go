@@ -120,7 +120,7 @@ func (s *Running) GetTransitions() sc.Transitions {
 
 func TestStopWatch(t *testing.T) {
 	ctx := context.WithValue(context.Background(), "testing.T", t)
-	stopWatch := sc.NewStateMachine((*Active)(nil), ctx)
+	stopWatch := sc.NewStateMachine(ctx, (*Active)(nil))
 	require.Nil(t, stopWatch.CurrentState())
 	require.NoError(t, stopWatch.Initiate(nil))
 	defer func() {
@@ -163,7 +163,7 @@ func TestStopWatch(t *testing.T) {
 
 func BenchmarkTransmit(b *testing.B) {
 	ctx := context.WithValue(context.Background(), "testing.B", b)
-	stopWatch := sc.NewStateMachine((*Active)(nil), ctx)
+	stopWatch := sc.NewStateMachine(ctx, (*Active)(nil))
 	stopWatch.CurrentState()
 	_ = stopWatch.Initiate(nil)
 	defer func() {
@@ -178,7 +178,7 @@ func BenchmarkTransmit(b *testing.B) {
 
 func BenchmarkProcessEvent(b *testing.B) {
 	ctx := context.WithValue(context.Background(), "testing.B", b)
-	stopWatch := sc.NewStateMachine((*Active)(nil), nil)
+	stopWatch := sc.NewStateMachine(ctx, (*Active)(nil))
 	stopWatch.CurrentState()
 	_ = stopWatch.Initiate(nil)
 	defer func() {

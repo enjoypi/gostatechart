@@ -166,7 +166,7 @@ func (state *SimpleState) initiate(ctx context.Context, parent *StateMachine, se
 	state.parent = parent
 	child := self.InitialChildState()
 	if child != nil {
-		machine := NewStateMachine(child, ctx)
+		machine := NewStateMachine(ctx, child)
 		machine.parent = parent
 		if err := machine.Initiate(event); err != nil {
 			return err
